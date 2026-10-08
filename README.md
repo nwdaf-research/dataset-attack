@@ -42,6 +42,8 @@ All files in the top level and in `attack/` are **event-based tables** stored as
 | `target_enb` | **Label:** the eNodeB the UE connects to (location prediction). |
 | `target_slot` | **Label:** binned time the UE stays at `target_enb` (one of 1, 5, 15, 30, 60, 100). |
 
+All UEs are simulated. The `imsi` values are synthetic identifiers produced by the simulator, not real subscriber identities, and the dataset contains no personal data.
+
 The ONE files (`ONE/*/MobilitySim_SectorMobility.json`) are raw traces instead:
 
 ```json
@@ -53,7 +55,20 @@ The ONE files (`ONE/*/MobilitySim_SectorMobility.json`) are raw traces instead:
 
 ## Usage
 
-The files are plain JSON, so no installation is needed. Download or clone the repository (≈700 MB), then load a table with pandas:
+### Requirements
+
+- About 850 MB of disk space for a clone, including the git history.
+- Python 3 with [pandas](https://pandas.pydata.org/). Tested with Python 3.13 and pandas 3.0. Any recent version should work, because the files are plain JSON.
+- Less than 1 GB of RAM per file. The largest files (`gm_dataset.json`, `attack/tuple_200.json`, about 150k events each) load in under 2 s and use under 0.5 GB with pandas.
+
+```bash
+git clone https://github.com/nwdaf-research/dataset-attack.git
+pip install pandas
+```
+
+### Loading the data
+
+Load a table with pandas:
 
 ```python
 import pandas as pd
@@ -73,6 +88,19 @@ X, y_loc, y_slot = train[features], train["target_enb"], train["target_slot"]
 ```
 
 From here, any classifier or AutoML framework can be trained to predict `target_enb` and `target_slot`. The FMEC 2024 paper used Auto-sklearn, FLAML and AutoGluon. In the papers, accuracy counts a prediction as correct only when both the location and the time slot are right.
+
+### Troubleshooting
+
+- **The DataFrame has the wrong shape**, for example 1 row, or 23 rows and thousands of columns: load the file with the defaults, `pd.read_json(path)`. The files are column-oriented (pandas' default `orient="columns"`). Passing `lines=True` gives a single row, and `orient="index"` gives a transposed table. Each table should have 23 columns.
+- **A file seems truncated, or is only a few hundred bytes:** the clone or download was incomplete. Re-download it, and check the file sizes against the GitHub listing.
+- **Concatenating legitimate and attack data:** reset the index (`ignore_index=True`, as above), because every file numbers its rows from 0.
+- **`ONE/tuple/adversary_ONE.zip`:** unzip it first (about 300 MB unzipped).
+
+## Contributing and reporting issues
+
+- Report problems with the data, such as missing or inconsistent files or unclear column definitions, in [GitHub Issues](https://github.com/nwdaf-research/dataset-attack/issues).
+- Contributions such as new attack scenarios, loaders or baseline models are welcome as pull requests. Please describe how the data was generated.
+- Everyone taking part is expected to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Citation
 
